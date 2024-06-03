@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import sklearn as skl
 
 from scipy.spatial.distance import pdist
 from scipy.cluster import hierarchy
@@ -8,15 +9,15 @@ from sklearn.neighbors import KDTree
 
 
 
-def pull_cluster_sizes(df, metric = 'sokalsneath', threshold = 0,
-         cluster_dict = {('met7', 'met8'):'m6_only', ('met6', 'met8'):'m7_only',('met6', 'met7'):'m8_only',
-           ('met8',):'m67_only', ('met7',):'m68_only', ('met6',):'m78_only', ():'all'}):
+def pull_cluster_sizes(df, metric = 'sokalsneath', threshold = 0, 
+    cluster_dict = {('met7', 'met8'):'m6_only', ('met6', 'met8'):'m7_only',('met6', 'met7'):'m8_only',
+                  ('met8',):'m67_only', ('met7',):'m68_only', ('met6',):'m78_only', ():'all'}):
     distance_matrix = pdist(df.T, metric=metric)
     # hierarchical clustering
     Z = hierarchy.linkage(distance_matrix, method='average')
     
     cluster_labels = hierarchy.fcluster(Z, threshold, criterion='distance')
-    # I want this to return the number of each cluster
+    # I wnat this to return the number of each cluster
     
     val, count = np.unique(cluster_labels, return_counts=True)
     
@@ -124,9 +125,6 @@ def calculate_between_clusters(pre_points, post_points, max_dist = 2500):
 
 def pull_real_syns(pre_rids, post_rids, syn_table, res = [9.7, 9.7, 45], syn_table_column = 'pre_pt_position'):
     
-    '''
-    syn table needs to have pre and post partners with post partners only having a soma and self contacts removed
-    '''
     syn_table = syn_table[(syn_table['pre_pt_root_id'].isin(pre_rids))&(syn_table['post_pt_root_id'].isin(post_rids))]
     
     if len(syn_table)>0:
@@ -135,21 +133,20 @@ def pull_real_syns(pre_rids, post_rids, syn_table, res = [9.7, 9.7, 45], syn_tab
         return []
         
 # func that will check what percentage of clusters have at least one actual synapse between the two clusters
-def cluster_real_syn_percentage(cluster_syns, real_syns):
-    matches = 0 
+def cluster_real_or_close_syn_percentage(pre_clusters, post_clusters, max_close_or_real_syn_dist = 0):
     
-    for cluster_syn in cluster_syns:
-        found_match = False
-        for cluster_syn_loc in cluster_syn:
+    '''
+    if max_close_or_real_syn_dist == 0, will return real synapses only 
+    if max_close_or_real_syn_dist > 0, then will return non partners that are that distance apart
+    
+    '''
+    
+    num_clust_with_syn = 0
+    
+    for pre_cluster, post_cluster in zip(pre_clusters, post_clusters):
+        num_close = sum(skl.metrics.pairwise_distances_argmin_min(np.vstack(pre_cluster), np.vstack(post_cluster))[1] <= max_close_or_real_syn_dist)
+        if num_close > 0:
+            num_clust_with_syn += 1
+            continue
             
-            for real_syn_loc in real_syns:
-                if np.array_equal(cluster_syn_loc, real_syn_loc):
-                    found_match = True
-                    break
-            if found_match:
-                break
-        
-        if found_match:
-            matches+=1
-    
-    return (matches / len(cluster_syns))*100
+    return(num_clust_with_syn/ len(pre_clusters)*100)
