@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import sklearn as skl
 
 from scipy.spatial.distance import pdist
@@ -43,28 +42,6 @@ def pull_cluster_sizes(df, metric = 'sokalsneath', threshold = 0,
     return(clust_count)
 
 
-def shuffle_clust_hist(df, n = 1000):
-    
-    # get real dist 
-    pivot_table_real = pd.pivot_table(df, values='size', index=['l6_group'], columns=['post_pt_root_id'], aggfunc=np.sum, fill_value=0)
-    log_pivot_table_real = np.log1p(pivot_table_real)
-    real_clust_n = pull_cluster_sizes(log_pivot_table_real)
-    
-    # now shuffle x times! 
-    hist_df = pd.DataFrame(columns = real_clust_n.keys())
-    
-    for i in range(n):
-        shuffle_test_df = df.copy()
-        shuffle_test_df['shuffled_l6_group'] = np.random.permutation(shuffle_test_df['l6_group'].values)
-
-        pivot_table_shuffled = pd.pivot_table(shuffle_test_df, values='size', index=['shuffled_l6_group'], columns=['post_pt_root_id'], aggfunc=np.sum, fill_value=0)
-
-        log_pivot_table_shuffled = np.log1p(pivot_table_shuffled)
-
-        new_line = pull_cluster_sizes(log_pivot_table_shuffled)
-        hist_df = pd.concat([hist_df,pd.DataFrame([new_line])])
-    
-    return hist_df
 
 
 
