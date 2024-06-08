@@ -3,6 +3,8 @@ import numpy as np
 from itertools import cycle
 import sklearn as skl
 from . import cluster_analysis
+import seaborn as sns
+from . import shuffle
 
 
 
@@ -89,3 +91,15 @@ def calculate_and_plot_clusters(pre_points, post_points, ax, pre_met_type, post_
     plot_clusters(pre_clusters, post_clusters, min_points=min_points, title = title, ax = ax,
                  post_alpha=post_alpha, pre_alpha=pre_alpha, x=x,y=y,plot_close_or_real=plot_close_or_real,
                   max_close_or_real_syn_dist=max_close_or_real_syn_dist,)
+    
+def plot_scatter_hist(real_pivot_df, shuffled_df):
+    values_to_mark = shuffle.pull_cluster_sizes(real_pivot_df)
+    for column in shuffled_df.columns:
+        plt.figure(figsize=(8, 4))  # Adjust the size as needed
+        sns.histplot(shuffled_df[column], kde=False, color='skyblue')
+        plt.axvline(x=values_to_mark[column], color='red', linestyle='--')
+        plt.title(column)
+        plt.xlabel('Values')
+        plt.ylabel('Frequency')
+        plt.savefig(f'shuffle_test_{column}.png', bbox_inches='tight')
+        plt.show()
