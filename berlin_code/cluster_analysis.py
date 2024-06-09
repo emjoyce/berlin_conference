@@ -127,3 +127,19 @@ def cluster_real_or_close_syn_percentage(pre_clusters, post_clusters, max_close_
             continue
             
     return(num_clust_with_syn/ len(pre_clusters)*100)
+
+def calculate_synapse_odds(df, synapse_id_col, post_pt_root_id_col):
+    # Group by the synapse_id column and count occurrences of post_pt_root_id within each group
+    count_per_group = df.groupby([synapse_id_col, post_pt_root_id_col]).size().reset_index(name='post_count_in_cube')
+    
+    # Merge the counts back to the original DataFrame
+    df = df.merge(count_per_group, on=[synapse_id_col, post_pt_root_id_col], how='left')
+    
+    # Calculate the total count for each synapse_id group
+    total_per_group = df.groupby(synapse_id_col)[synapse_id_col].transform('size')
+    df['total_syn_per_cube'] = total_per_group
+    
+    # Calculate the odds and add as a new column
+    df['odds'] = df['post_count_in_cube'] / total_per_group
+    
+    return df
