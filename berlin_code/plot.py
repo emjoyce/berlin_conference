@@ -4,7 +4,6 @@ from itertools import cycle
 import sklearn as skl
 from . import cluster_analysis
 import seaborn as sns
-from . import shuffle
 
 
 
@@ -93,7 +92,8 @@ def calculate_and_plot_clusters(pre_points, post_points, ax, pre_met_type, post_
                   max_close_or_real_syn_dist=max_close_or_real_syn_dist,)
     
 def plot_scatter_hist(real_pivot_df, shuffled_df):
-    values_to_mark = shuffle.pull_cluster_sizes(real_pivot_df)
+    '''shuffled df is the results of the df dist after shuffle'''
+    values_to_mark = cluster_analysis.pull_shuffle_cluster_met_sizes(real_pivot_df)
     for column in shuffled_df.columns:
         plt.figure(figsize=(8, 4))  # Adjust the size as needed
         sns.histplot(shuffled_df[column], kde=False, color='skyblue')

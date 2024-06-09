@@ -6,39 +6,46 @@ from scipy.cluster import hierarchy
 from sklearn.neighbors import KDTree
 
 
+cluster_dict = {('met7', 'met8'):'m6_only', ('met6', 'met8'):'m7_only',('met6', 'met7'):'m8_only',
+                  ('met8',):'m67_only', ('met7',):'m68_only', ('met6',):'m78_only', ():'all'}
 
 
-def pull_cluster_sizes(df, metric = 'sokalsneath', threshold = 0, 
-    cluster_dict = {('met7', 'met8'):'m6_only', ('met6', 'met8'):'m7_only',('met6', 'met7'):'m8_only',
-                  ('met8',):'m67_only', ('met7',):'m68_only', ('met6',):'m78_only', ():'all'}):
-    distance_matrix = pdist(df.T, metric=metric)
+def pull_shuffle_cluster_met_sizes(pivot_df, return_as_percentage = True, metric = 'sokalsneath', threshold = 0, 
+                       cluster_dict = cluster_dict):
+    distance_matrix = pdist(pivot_df.T, metric='sokalsneath')
     # hierarchical clustering
     Z = hierarchy.linkage(distance_matrix, method='average')
     
     cluster_labels = hierarchy.fcluster(Z, threshold, criterion='distance')
+    #print(cluster_labels)
     # I wnat this to return the number of each cluster
     
     val, count = np.unique(cluster_labels, return_counts=True)
-    
     clust_count = {}
+    
     for clust_num, clust_num_count in list(zip(val, count)):
-        
+        #print(clust_num, clust_num_count)
         # get the first index of that array 
+        
         clust_idx = np.where(cluster_labels==clust_num)[0][0]
-        
-        # now get the met types with 0 connections here
-        clust_labels_key = tuple(df.iloc[:,clust_idx][df.iloc[:,clust_idx] == 0].index)
+        #print(f'clust_num:{clust_num}, clust_idx:{clust_idx}')
+        # now get the met types with 0 connections here - should give keys to cluster_dict
+        clust_labels_key = tuple(pivot_df.iloc[:,clust_idx][pivot_df.iloc[:,clust_idx] == 0].index)
+        #print(f'clust_labels_key:{clust_labels_key}')
         met_clust = cluster_dict[clust_labels_key]
-        
+        #print(clust_labels_key, met_clust)
+        #print(met_clust, clust_num_count)
         clust_count[met_clust] = clust_num_count
 
     # check for met clusters that are not present in clust_count and add them with 0 as value
-    
     missing_clusts = set(clust_count.keys()) ^ set(cluster_dict.values())
     if len(missing_clusts) > 0:
         for(met_clust) in missing_clusts:
             clust_count[met_clust] = 0
     
+    if return_as_percentage:
+        total_n_post = sum(clust_count.values())
+        clust_count = {k:v/total_n_post for k, v in clust_count.items()}
     return(clust_count)
 
 
