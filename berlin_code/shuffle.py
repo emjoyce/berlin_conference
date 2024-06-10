@@ -42,7 +42,7 @@ def shuffle_clust_hist(df, pivot_df, nuc_df_solorids, n = 1000):
     return hist_df
 
 
-def single_spatial_within_dist(pre_id, client, nuc_df_solorids = None, max_dist = 2500, 
+def spatial_shuffle_query_rid(pre_id, client, nuc_df_solorids = None, max_dist = 2500, 
                            compare_num_soma_partners = True, max_retries = 5, 
                            record_all = True, 
                    ):
@@ -149,7 +149,6 @@ def single_spatial_within_dist(pre_id, client, nuc_df_solorids = None, max_dist 
     return soma_df
 
 
-
 def spatial_shuffle_n_times(shuffle_all_possibilities_df, n_shuffles = 1000):
 
     # this is supposed to take the shuffled df, then group bby 
@@ -181,16 +180,15 @@ def spatial_shuffle_to_single_pivot(spatial_shuffle_n_times_df, nuc_df_solorids,
         # pick one random row in the real_syn group and append 
         all_shuffled_data.append(group.sample(1).values)
     final_df = pd.DataFrame(np.vstack(all_shuffled_data), columns = spatial_shuffle_n_times_df.columns)
-    final_df[final_df['shuffled_post_id'].isin(nuc_df_solorids)].pivot_table(columns = 'shuffled_post_id', index = 'pre_met', values = 'shuffled_size', fill_value = 0)
-
     multiple_post = pd.DataFrame(final_df['shuffled_post_id'].value_counts()).reset_index()
     multiple_post = multiple_post[multiple_post['count'] > multiple_post_count]['shuffled_post_id'].values
+    
+    final_df = final_df[(final_df['shuffled_post_id'].isin(multiple_post)) & (final_df['shuffled_post_id'].isin(nuc_df_solorids))].reset_index(drop = True)
 
-    final_df = final_df[final_df['shuffled_post_id'].isin(multiple_post)]
     return final_df.pivot_table(columns = 'shuffled_post_id', index = 'pre_met', values = 'shuffled_size', fill_value = 0)
 
  
-def spatial_shuffle_multi_met_dist(m678_shuffle_all_df, real_pivot, n_shuffles, nuc_df_solorids):
+def spatial_shuffle_multi_met_dist(m678_shuffle_all_df, real_pivot, n_shuffles, nuc_df_solorids, multiple_post_count = 3):
     
     spatial_shuffle_n_times_df = spatial_shuffle_n_times(m678_shuffle_all_df)
     real_clust_n = cluster_analysis.pull_shuffle_cluster_met_sizes(real_pivot)
@@ -202,7 +200,7 @@ def spatial_shuffle_multi_met_dist(m678_shuffle_all_df, real_pivot, n_shuffles, 
     for i in range(n_shuffles):
         if i%50==0:
             print(f'finished {i/n_shuffles*100}% of shuffles')
-        current_pivot = spatial_shuffle_to_single_pivot(spatial_shuffle_n_times_df, nuc_df_solorids)
+        current_pivot = spatial_shuffle_to_single_pivot(spatial_shuffle_n_times_df, nuc_df_solorids, multiple_post_count = multiple_post_count)
         new_cluster_met_dict = cluster_analysis.pull_shuffle_cluster_met_sizes(current_pivot)
         ordered_values = [new_cluster_met_dict[key] for key in ordered_keys]
         cluster_distributions.append(ordered_values)
